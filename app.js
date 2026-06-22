@@ -152,17 +152,28 @@ async function initCloud(){
     if(currentUser) await loadFromCloud(); else {cloudStatus='Local'; render();}
   });
 }
-async function signInEmail(){
-  const email=prompt('Email para iniciar sesión:'); if(!email) return;
-  const password=prompt('Contraseña:'); if(!password) return;
+async function signInEmail(email=null,password=null){
+  email = email || document.querySelector('#authEmail')?.value?.trim();
+  password = password || document.querySelector('#authPassword')?.value;
+  if(!email || !password){ alert('Escribe email y contraseña.'); return; }
+  setAuthMessage('Entrando...');
   const {error}=await cloud.auth.signInWithPassword({email,password});
-  if(error) alert('No se pudo iniciar sesión: '+error.message);
+  if(error) setAuthMessage('No se pudo iniciar sesión: '+error.message, true);
+  else setAuthMessage('Sesión iniciada. Cargando tus datos...');
 }
-async function signUpEmail(){
-  const email=prompt('Email para crear cuenta:'); if(!email) return;
-  const password=prompt('Contraseña mínimo 6 caracteres:'); if(!password) return;
+async function signUpEmail(email=null,password=null){
+  email = email || document.querySelector('#authEmail')?.value?.trim();
+  password = password || document.querySelector('#authPassword')?.value;
+  if(!email || !password){ alert('Escribe email y contraseña.'); return; }
+  if(password.length < 6){ alert('La contraseña debe tener mínimo 6 caracteres.'); return; }
+  setAuthMessage('Creando cuenta...');
   const {error}=await cloud.auth.signUp({email,password});
-  if(error) alert('No se pudo crear la cuenta: '+error.message); else alert('Cuenta creada. Si Supabase pide confirmación, revisa tu email.');
+  if(error) setAuthMessage('No se pudo crear la cuenta: '+error.message, true);
+  else setAuthMessage('Cuenta creada. Si Supabase pide confirmación, revisa tu email.');
+}
+function setAuthMessage(text, danger=false){
+  const el=document.querySelector('#authMessage');
+  if(el){ el.textContent=text; el.classList.toggle('danger-text', !!danger); }
 }
 async function signInProvider(provider){
   const {error}=await cloud.auth.signInWithOAuth({provider, options:{redirectTo: location.origin + location.pathname}});
@@ -241,9 +252,36 @@ function resultCard(r){return `<article class="entry result-card"><div class="en
 function accountCard(){
   if(!cloud) return `<div class="card"><h3>Cuenta y nube</h3><p class="hint">No se cargó Supabase. Revisa conexión a internet.</p></div>`;
   if(currentUser){
-    return `<div class="card account-card"><h3>Cuenta y nube</h3><p><b>${esc(currentUser.email || 'Cuenta conectada')}</b></p><p class="hint">Estado: <span id="cloudStatus">${esc(cloudStatus)}</span>. Tus plantas, diario, fertilizantes, resultados y fotos en base64 se sincronizan en Supabase.</p><button class="primary" id="syncNow">Sincronizar ahora</button><button class="primary danger" id="logoutBtn">Cerrar sesión</button></div>`;
+    return `<div class="card account-card connected-card"><div class="connected-icon">✓</div><h3>Cuenta conectada</h3><p><b>${esc(currentUser.email || 'Cuenta conectada')}</b></p><p class="hint">Estado: <span id="cloudStatus">${esc(cloudStatus)}</span>. Tus plantas, diario, fertilizantes, resultados y fotos se sincronizan con Supabase.</p><button class="primary" id="syncNow">Sincronizar ahora</button><button class="primary danger" id="logoutBtn">Cerrar sesión</button></div>`;
   }
-  return `<div class="card account-card"><h3>Cuenta y nube</h3><p class="hint">Inicia sesión para sincronizar entre iPhone y PC. Primero ejecuta el archivo supabase-setup.sql en Supabase.</p><button class="primary" id="loginGoogle">Continuar con Google</button><button class="primary ghost" id="loginApple">Continuar con Apple</button><button class="primary ghost" id="loginEmail">Entrar con email</button><button class="primary ghost" id="signupEmail">Crear cuenta con email</button><p class="hint">Face ID se puede añadir después como passkey/WebAuthn cuando la app esté en HTTPS con dominio estable.</p></div>`;
+  return `<section class="login-hero">
+    <div class="login-glow"></div>
+    <div class="login-brand">
+      <div class="login-logo">☾</div>
+      <div><p class="eyebrow">Indoor Diary Cloud</p><h2>Bienvenido de nuevo</h2></div>
+    </div>
+    <p class="login-subtitle">Inicia sesión para sincronizar tu diario entre iPhone, PC y cualquier dispositivo.</p>
+    <div class="social-grid">
+      <button class="social-btn" id="loginGoogle"><span class="google-dot">G</span> Google</button>
+      <button class="social-btn" id="loginApple"><span></span> Apple</button>
+    </div>
+    <div class="divider"><span>o entra con email</span></div>
+    <div class="auth-form">
+      <label>Email</label>
+      <input id="authEmail" type="email" autocomplete="email" placeholder="tu@email.com">
+      <label>Contraseña</label>
+      <input id="authPassword" type="password" autocomplete="current-password" placeholder="Mínimo 6 caracteres">
+      <button class="primary" id="loginEmail">Iniciar sesión</button>
+      <button class="primary ghost" id="signupEmail">Crear cuenta nueva</button>
+      <p id="authMessage" class="auth-message"></p>
+    </div>
+    <div class="security-row">
+      <span>🔒 Datos privados por cuenta</span>
+      <span>☁️ Copia en nube</span>
+      <span>📱 iPhone ready</span>
+    </div>
+    <p class="hint">Face ID se añadirá después como Passkey/WebAuthn cuando la app esté publicada con HTTPS y dominio estable.</p>
+  </section>`;
 }
 
 function bind(){
@@ -271,6 +309,7 @@ function bind(){
   let la=$('#loginApple'); if(la) la.onclick=()=>signInProvider('apple');
   let le=$('#loginEmail'); if(le) le.onclick=()=>signInEmail();
   let se=$('#signupEmail'); if(se) se.onclick=()=>signUpEmail();
+  let apw=$('#authPassword'); if(apw) apw.onkeydown=(ev)=>{if(ev.key==='Enter') signInEmail();};
   let lo=$('#logoutBtn'); if(lo) lo.onclick=()=>signOut();
   let sn=$('#syncNow'); if(sn) sn.onclick=()=>saveToCloud();
 }
