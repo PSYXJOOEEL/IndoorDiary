@@ -1,5 +1,6 @@
 -- Indoor Diary Supabase setup
--- Ejecuta este archivo en Supabase > SQL Editor > New query > Run.
+-- Ejecuta TODO este archivo en Supabase > SQL Editor > New query > Run.
+-- Crea la tabla principal, permisos RLS y buckets de fotos para futuras versiones.
 
 create table if not exists public.app_states (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -13,18 +14,21 @@ drop policy if exists "Users can read own diary state" on public.app_states;
 create policy "Users can read own diary state"
   on public.app_states
   for select
+  to authenticated
   using (auth.uid() = user_id);
 
 drop policy if exists "Users can insert own diary state" on public.app_states;
 create policy "Users can insert own diary state"
   on public.app_states
   for insert
+  to authenticated
   with check (auth.uid() = user_id);
 
 drop policy if exists "Users can update own diary state" on public.app_states;
 create policy "Users can update own diary state"
   on public.app_states
   for update
+  to authenticated
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
@@ -32,10 +36,12 @@ drop policy if exists "Users can delete own diary state" on public.app_states;
 create policy "Users can delete own diary state"
   on public.app_states
   for delete
+  to authenticated
   using (auth.uid() = user_id);
 
--- Buckets reservados para una futura versión donde las fotos se guarden como archivos.
--- La versión actual sincroniza todo el diario como JSON, incluyendo fotos comprimidas.
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on public.app_states to authenticated;
+
 insert into storage.buckets (id, name, public)
 values ('plant-photos', 'plant-photos', false)
 on conflict (id) do nothing;

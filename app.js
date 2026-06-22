@@ -188,9 +188,54 @@ function dateTxt(d){return new Date(d+'T12:00').toLocaleDateString('es-ES',{day:
 function esc(v=''){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function plantNames(ids=[]){let names=ids.map(id=>state.plants.find(p=>p.id==id)?.name).filter(Boolean);return names.length?names.join(', '):'Sin planta asignada'}
 function plantAvatar(p){return p.iconPhoto?`<img src="${p.iconPhoto}" alt="${esc(p.name)}">`:esc(p.emoji||'🌱')}
-function photoGallery(list=[], alt='Foto'){return (list||[]).length?`<div class="photo-gallery">${(list||[]).map((src,i)=>`<button class="photo-item" data-photo-view="${encodeURIComponent(src)}" data-photo-name="${esc(alt)}-${i+1}"><img class="thumb" src="${src}" alt="${esc(alt)}"><span>Ver / descargar</span></button>`).join('')}</div>`:''}
-function openPhotoViewer(src,name='foto-indoor'){modal.classList.remove('hidden');modal.innerHTML=`<div class="sheet photo-viewer"><button class="close">Cerrar</button><h3>Foto</h3><img class="big-photo" src="${src}" alt="Foto ampliada"><div class="photo-actions"><a class="primary download-link" href="${src}" download="${esc(name)}.jpg">Descargar foto</a><button class="primary ghost" id="openPhotoNew">Abrir grande</button></div><p class="hint">En iPhone, si Descargar no guarda directo, abre grande y mantén pulsada la imagen para guardarla en Fotos.</p></div>`;modal.querySelector('.close').onclick=()=>modal.classList.add('hidden');modal.querySelector('#openPhotoNew').onclick=()=>{window.open(src,'_blank')};}
-function compressImageDataUrl(dataUrl, maxSize=1600, quality=0.84){
+function photoGallery(list=[], alt='Foto'){
+  return (list||[]).length ? `<div class="photo-gallery">${(list||[]).map((src,i)=>`<button type="button" class="photo-item" data-photo-view="${encodeURIComponent(src)}" data-photo-name="${esc(alt)}-${i+1}"><img class="thumb" src="${src}" alt="${esc(alt)}"><span>Ver / descargar</span></button>`).join('')}</div>` : '';
+}
+function dataUrlToBlob(dataUrl){
+  const parts=String(dataUrl).split(',');
+  if(parts.length<2) return new Blob([dataUrl],{type:'text/plain'});
+  const match=parts[0].match(/data:([^;]+)/);
+  const mime=match?match[1]:'image/jpeg';
+  const bin=atob(parts[1]);
+  const len=bin.length;
+  const bytes=new Uint8Array(len);
+  for(let i=0;i<len;i++) bytes[i]=bin.charCodeAt(i);
+  return new Blob([bytes],{type:mime});
+}
+function safeFileName(name='foto-indoor'){
+  return String(name).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'') || 'foto-indoor';
+}
+function photoObjectUrl(src){
+  try{ return URL.createObjectURL(dataUrlToBlob(src)); }catch{ return src; }
+}
+function downloadPhoto(src,name='foto-indoor'){
+  const url=photoObjectUrl(src);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=safeFileName(name)+'.jpg';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>{try{URL.revokeObjectURL(url)}catch{}}, 2000);
+}
+function openPhotoInNewTab(src){
+  const url=photoObjectUrl(src);
+  const win=window.open('', '_blank');
+  if(win){
+    win.document.write(`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Foto Indoor Diary</title><style>html,body{margin:0;background:#050208;height:100%;display:flex;align-items:center;justify-content:center}img{max-width:100%;max-height:100%;object-fit:contain}</style></head><body><img src="${url}" alt="Foto"></body></html>`);
+    win.document.close();
+  }else{
+    location.href=url;
+  }
+}
+function openPhotoViewer(src,name='foto-indoor'){
+  modal.classList.remove('hidden');
+  modal.innerHTML=`<div class="sheet photo-viewer"><button class="close" type="button">Cerrar</button><h3>Foto</h3><div class="big-photo-wrap"><img class="big-photo" src="${src}" alt="Foto ampliada"></div><div class="photo-actions"><button class="primary" type="button" id="downloadPhotoBtn">Descargar</button><button class="primary ghost" type="button" id="openPhotoNew">Abrir grande</button></div><p class="hint">La foto se guarda con buena calidad. En iPhone, si el botón Descargar no abre Fotos directamente, pulsa “Abrir grande” y mantén pulsada la imagen para guardarla.</p></div>`;
+  modal.querySelector('.close').onclick=()=>modal.classList.add('hidden');
+  modal.querySelector('#downloadPhotoBtn').onclick=()=>downloadPhoto(src,name);
+  modal.querySelector('#openPhotoNew').onclick=()=>openPhotoInNewTab(src);
+}
+function compressImageDataUrl(dataUrl, maxSize=2600, quality=0.92){
   return new Promise(resolve=>{
     if(!String(dataUrl).startsWith('data:image/')) return resolve(dataUrl);
     const img=new Image();
