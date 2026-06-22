@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0714" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Indoor Diary" />
+  <title>Indoor Diary</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow" id="todayText">Diario indoor</p>
+        <h1>Indoor Diary</h1>
+      </div>
+      <div class="status-pill"><span class="dot"></span><span id="phasePill">Vegetativo</span></div>
+    </header>
+
+    <main id="app"></main>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-tab="home">⌂<span>Inicio</span></button>
+      <button class="nav-btn" data-tab="diary">✎<span>Diario</span></button>
+      <button class="nav-btn" data-tab="plants">☘<span>Plantas</span></button>
+      <button class="nav-btn" data-tab="customize">✦<span>Personal</span></button>
+      <button class="nav-btn" data-tab="results">🏆<span>Resultados</span></button>
+      <button class="nav-btn" data-tab="settings">⚙<span>Ajustes</span></button>
+    </nav>
+  </div>
+
+  <div id="modal" class="modal hidden"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>

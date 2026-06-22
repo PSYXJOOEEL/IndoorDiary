@@ -1,0 +1,9 @@
+{
+  "name": "Indoor Diary",
+  "short_name": "IndoorDiary",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0b0714",
+  "theme_color": "#0b0714",
+  "icons": []
+}
